@@ -13,6 +13,7 @@ type Info struct {
 	FileName string
 	FileUrl  string
 	source   *tgbotapi.Message
+	FromID   int64
 }
 
 var API_TOKEN string
@@ -167,6 +168,7 @@ func RequestUpdates() {
 			FileName: fileName,
 			FileUrl:  fileUrl,
 			source:   update.Message,
+			FromID:   update.Message.From.ID,
 		})
 	}
 }

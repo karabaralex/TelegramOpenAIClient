@@ -1,62 +1,55 @@
 package config
 
 import (
-    "testing"
 	"os"
+	"testing"
 )
 
-func TestFolderNotSet(t *testing.T) {
-	os.Setenv("TORRENT_FOLDER", "")
+func TestNotSet(t *testing.T) {
 	os.Setenv("TELEGRAM_TOKEN", "")
-	_,error:=Read()
+	os.Setenv("OPENAI_TOKEN", "123")
+	_, error := Read()
 	if error == nil {
 		t.Fatalf("expected error")
 	}
 }
 
-func TestFolderSet(t *testing.T) {
-	os.Setenv("TORRENT_FOLDER", "my_folder")
-	os.Setenv("TELEGRAM_TOKEN", "token")
-	config,error:=Read()
+func TestNotSet2(t *testing.T) {
+	os.Setenv("TELEGRAM_TOKEN", "123")
+	os.Setenv("OPENAI_TOKEN", "")
+	_, error := Read()
+	if error == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestId1(t *testing.T) {
+	os.Setenv("TELEGRAM_TOKEN", "123")
+	os.Setenv("OPENAI_TOKEN", "123")
+	os.Setenv("WHITELISTED_IDS", "123")
+	res, error := Read()
 	if error != nil {
-		t.Fatalf("not expected error")
+		t.Fatalf("expected error")
 	}
-	if config.TorrentFileFolder!="my_folder" {
-		t.Fatalf("not expected %v", config.TorrentFileFolder)
-	}
-	if config.TelegramBotToken!="token" {
-		t.Fatalf("not expected %v", config.TelegramBotToken)
+
+	if len(res.WhitelistedUserId) == 0 || res.WhitelistedUserId[0] != 123 {
+		t.Fatalf("not parsed")
 	}
 }
 
-func TestCreateFilePath(t *testing.T) {
-	actual:=CreateFilePath("path","file")
-	expected:="path/file"
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected,actual)
+func TestId2(t *testing.T) {
+	os.Setenv("TELEGRAM_TOKEN", "123")
+	os.Setenv("OPENAI_TOKEN", "123")
+	os.Setenv("WHITELISTED_IDS", "123,565,838")
+	res, error := Read()
+	if error != nil {
+		t.Fatalf("expected error")
 	}
-}
 
-func TestCreateFilePath2(t *testing.T) {
-	actual:=CreateFilePath("path/","file")
-	expected:="path/file"
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected,actual)
-	}
-}
-
-func TestCreateFilePath3(t *testing.T) {
-	actual:=CreateFilePath("/a/b/path/","file")
-	expected:="/a/b/path/file"
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected,actual)
-	}
-}
-
-func TestCreateFilePath4(t *testing.T) {
-	actual:=CreateFilePath("/a/b/path/","/file")
-	expected:="/a/b/path/file"
-	if expected != actual {
-		t.Fatalf("expected %v, got %v", expected,actual)
+	if len(res.WhitelistedUserId) == 0 ||
+		res.WhitelistedUserId[0] != 123 ||
+		res.WhitelistedUserId[1] != 565 ||
+		res.WhitelistedUserId[2] != 838 {
+		t.Fatalf("not parsed")
 	}
 }

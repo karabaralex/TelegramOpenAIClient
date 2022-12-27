@@ -3,36 +3,51 @@ package config
 import (
 	"errors"
 	"os"
-	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 type Config struct {
-	TorrentFileFolder      string // folder to store torrent files, which will be downloaded by transmission as a result
-	TelegramBotToken       string
-	RuTrackerUserName      string
-	RuTrackerPassword      string
-	ActiveTorrentFilesPath string // folder which currently downloading, transmission will move torrent files to this folder
-	FinishedFolder         string // folder with downloaded content
+	TelegramBotToken  string
+	OpenAIToken       string
+	WhitelistedUserId []int64
 }
 
 func Read() (Config, error) {
 	result := Config{}
-	result.TorrentFileFolder = os.Getenv("TORRENT_FOLDER")
 	result.TelegramBotToken = os.Getenv("TELEGRAM_TOKEN")
-	if result.TorrentFileFolder == "" {
-		return result, errors.New("no torrent folder")
-	}
 	if result.TelegramBotToken == "" {
 		return result, errors.New("no telegram token")
 	}
 
-	result.RuTrackerUserName = os.Getenv("RUTRACKER_LOGIN")
-	result.RuTrackerPassword = os.Getenv("RUTRACKER_PASSWORD")
-	result.ActiveTorrentFilesPath = os.Getenv("ACTIVE_TORRENT_FILES_PATH")
-	result.FinishedFolder = os.Getenv("FINISHED_FOLDER")
+	result.OpenAIToken = os.Getenv("OPENAI_TOKEN")
+	if result.OpenAIToken == "" {
+		return result, errors.New("no OpenAI token")
+	}
+
+	idsString := os.Getenv("WHITELISTED_IDS")
+	if idsString != "" {
+		idsStrArray := strings.Split(idsString, ",")
+		idsIntArray, err := convertStringsToInts(idsStrArray)
+		if err != nil {
+			return result, err
+		}
+
+		result.WhitelistedUserId = idsIntArray
+	}
+
 	return result, nil
 }
 
-func CreateFilePath(torrentFolder string, fileName string) string {
-	return filepath.Join(torrentFolder, fileName)
+func convertStringsToInts(input []string) ([]int64, error) {
+	var t2 = []int64{}
+
+	for _, i := range input {
+		j, err := strconv.ParseInt(i, 10, 0)
+		if err != nil {
+			panic(err)
+		}
+		t2 = append(t2, j)
+	}
+	return t2, nil
 }
