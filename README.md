@@ -1,2 +1,3 @@
-# TelegramDownloaderBot
-synology telegram downloader
+# OpenAI telegram client
+
+ask AI what is the answer to everything... in Telegram!
