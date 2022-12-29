@@ -35,11 +35,18 @@ type OpenAiResponse struct {
 	ID      string                 `json:"id"`
 	Prompt  string                 `json:"prompt"`
 	Choices []OpenAiResponseChoice `json:"choices"`
+	Usage   OpenAiResponseUsage    `json:"usage"`
 }
 
 type OpenAiResponseChoice struct {
 	Text         string `json:"text"`
 	FinishReason string `json:"finish_reason"`
+}
+
+type OpenAiResponseUsage struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	TotalTokens      int `json:"total_tokens"`
 }
 
 /**
@@ -51,7 +58,7 @@ response example
 [{"text":"\n\nIngredients:\n\n-1 1/2 cups all-purpose flour\n-1/4 teaspoon salt\n-2/3 cup cold water\n-2 tablespoons vegetable oil\n-1/2 pound ground pork or beef\n-1/4 cup minced onion\n-1 teaspoon sesame oil\n-2 cloves garlic, minced\n-1 tablespoon freshly grated ginger\n-1 tablespoon soy sauce\n-1/3 cup finely chopped cabbage\n-1/4 cup shredded carrots\n-1/4 cup chopped green onions\n-1/4 cup frozen corn kernels\n-Salt and pepper to taste\n\nInstructions:\n\n1. In a large bowl, whisk together the flour and salt. Stir in the cold","index":0,"logprobs":null,"finish_reason":"length"}],"usage":{"prompt_tokens":7,"completion_tokens":150,"total_tokens":157}}
 
 */
-func AskOpenAI(body string, token string) (string, error) {
+func AskOpenAI(body string, token string) (*OpenAiResponse, error) {
 	url := "https://api.openai.com/v1/completions"
 
 	stop := [2]string{" Human:", " AI:"}
@@ -62,7 +69,7 @@ func AskOpenAI(body string, token string) (string, error) {
 	req, err := http.NewRequest("POST", url,
 		strings.NewReader(string(foo_marshalled)))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Set the headers
@@ -73,16 +80,16 @@ func AskOpenAI(body string, token string) (string, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("status code error: %d %s", resp.StatusCode, resp.Status)
+		return nil, fmt.Errorf("status code error: %d %s", resp.StatusCode, resp.Status)
 	}
 
 	jsonResponse, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Close the response body
@@ -90,17 +97,14 @@ func AskOpenAI(body string, token string) (string, error) {
 
 	openAiResponse, err := ParseOpenAIResponse(string(jsonResponse))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(openAiResponse.Choices) == 0 {
-		return "", fmt.Errorf("empty choices in response")
+		return nil, fmt.Errorf("empty choices in response")
 	}
 
-	// convertedString := string(pastedUrl)
-	// // trim and remove new lines
-	// convertedString = strings.Trim(convertedString, "\n")
-	return openAiResponse.Choices[0].Text, nil
+	return openAiResponse, nil
 }
 
 func ParseOpenAIResponse(response string) (*OpenAiResponse, error) {

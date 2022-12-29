@@ -177,6 +177,7 @@ type OutMessage struct {
 	OriginalMessage *Info
 	Text            string
 	Html            bool
+	Markdown        bool
 }
 
 func Sender(sendChannel chan OutMessage) {
@@ -196,6 +197,10 @@ func Sender(sendChannel chan OutMessage) {
 		msg := tgbotapi.NewMessage(telegramMessage.Chat.ID, toSend.Text)
 		if toSend.Html {
 			msg.ParseMode = "HTML"
+		}
+
+		if toSend.Markdown {
+			msg.ParseMode = "Markdown"
 		}
 
 		// We'll also say that this message is a reply to the previous message.

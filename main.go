@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime/debug"
+	"time"
 
 	"github.com/telegram-command-reader/bot"
 	"github.com/telegram-command-reader/config"
@@ -48,24 +49,41 @@ func main() {
 	bot.AddHandler(bot.NewTextMatcher(".*"), func(message *bot.Info) {
 		fmt.Println("Command .*", message.Text)
 		fmt.Println("Sender .*", message.FromID)
-		bot.SendTypingStatus(message)
 		if findIntInArray(envConfig.WhitelistedUserId, message.FromID) == false {
 			reply := bot.OutMessage{OriginalMessage: message, Text: "Not whitelisted", Html: false}
 			outputChannel <- reply
 			return
 		}
 
+		// Telegram typing status lasts from 5 seconds,
+		// need to repeat it while chatGPT request is ongoing
+		stopTyping := make(chan bool)
+		go func() {
+			for {
+				select {
+				case <-stopTyping:
+					return
+				default:
+					bot.SendTypingStatus(message)
+					time.Sleep(time.Second * 5)
+				}
+			}
+		}()
+
 		go safeCall(func() {
 			res, err := operations.AskOpenAI(message.Text, envConfig.OpenAIToken)
+			stopTyping <- true
 			if err != nil {
 				fmt.Println(res)
 				reply := bot.OutMessage{OriginalMessage: message, Text: err.Error()}
 				outputChannel <- reply
 			} else {
-				reply := bot.OutMessage{OriginalMessage: message, Text: res, Html: true}
+				// cannot use html or markdown because openApi may return special characters
+				reply := bot.OutMessage{OriginalMessage: message, Text: makeText(res), Html: false, Markdown: false}
 				outputChannel <- reply
 			}
 		}, func(s string) {
+			stopTyping <- true
 			reply := bot.OutMessage{OriginalMessage: message, Text: s}
 			outputChannel <- reply
 		})
@@ -73,6 +91,16 @@ func main() {
 
 	go bot.Sender(outputChannel)
 	bot.RequestUpdates()
+}
+
+func makeText(response *operations.OpenAiResponse) string {
+	res := fmt.Sprintf("%s\n\nDebug mode\nFinished by: %s, Tokens total: %d, prompt: %d, response: %d",
+		response.Choices[0].Text,
+		response.Choices[0].FinishReason,
+		response.Usage.TotalTokens,
+		response.Usage.PromptTokens,
+		response.Usage.CompletionTokens)
+	return res
 }
 
 // This function takes an array of integers and a value to find as arguments,
