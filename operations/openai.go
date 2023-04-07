@@ -62,7 +62,7 @@ func AskOpenAI(body string, token string) (*OpenAiResponse, error) {
 	url := "https://api.openai.com/v1/completions"
 
 	stop := [2]string{" Human:", " AI:"}
-	foo_marshalled, err := json.Marshal(openAiRequest{Model: "text-davinci-003",
+	foo_marshalled, err := json.Marshal(openAiRequest{Model: "gpt-3.5-turbo",
 		Prompt: body, Temperature: 0.9, MaxTokens: 2000, TopP: 1, FrequencyPenalty: 0.0, PresencePenalty: 0.6, Stop: stop[:]})
 
 	// Create the request
